@@ -33,10 +33,14 @@
     <script>
         const contractAddress = '0x739ED265Af12F3e5518884eAc0a32c2eCA92e820'; // Replace
         const rpcUrl = 'https://sepolia.infura.io/v3/0x23bf685caf36d4d53bb221391b7d25e52e2117ab29d59bf9e7b04d3c69c8485f'; // Or public RPC
-        const abi = [ // Minimal ABI for getTokenData
-            "function getTokenData(uint256 id) view returns (string receiverName, string talkTitle, string eventDate, string issuer, uint256 timestamp, bytes32 imageHash)"
+        const abi = [
+            "function getReceiverName(uint256) view returns (string)",
+            "function getTalkTitle(uint256) view returns (string)",
+            "function getEventDate(uint256) view returns (string)",
+            "function getIssuer(uint256) view returns (string)",
+            "function getTimestamp(uint256) view returns (uint256)",
+            "function getImageHash(uint256) view returns (bytes32)"
         ];
-
         const provider = new ethers.providers.JsonRpcProvider(rpcUrl);
         const contract = new ethers.Contract(contractAddress, abi, provider);
 
@@ -46,17 +50,23 @@
         const key = params.get('key'); // For view verification (mock: assume valid if provided)
 
         async function loadCredential() {
-            if (!tokenID || !key) {
-                document.getElementById('status').textContent = 'Invalid link.';
-                return;
-            }
+            if (!tokenID) return;
+        
             try {
-                const data = await contract.getTokenData(tokenID);
-                document.getElementById('name').textContent = `Receiver: ${data[0]}`;
-                document.getElementById('title').textContent = `Talk: ${data[1]}`;
-                document.getElementById('date').textContent = `Date: ${data[2]}`;
-                document.getElementById('issuer').textContent = `Issuer: ${data[3]}`;
-                document.getElementById('timestamp').textContent = `Minted: ${new Date(data[4] * 1000).toLocaleString()}`;
+                const [name, title, date, issuer, timestamp, imageHash] = await Promise.all([
+                    contract.getReceiverName(tokenID),
+                    contract.getTalkTitle(tokenID),
+                    contract.getEventDate(tokenID),
+                    contract.getIssuer(tokenID),
+                    contract.getTimestamp(tokenID),
+                    contract.getImageHash(tokenID)
+                ]);
+        
+                document.getElementById('name').textContent = `Receiver: ${name}`;
+                document.getElementById('title').textContent = `Talk: ${title}`;
+                document.getElementById('date').textContent = `Date: ${date}`;
+                document.getElementById('issuer').textContent = `Issuer: ${issuer}`;
+                document.getElementById('timestamp').textContent = `Minted: ${new Date(timestamp * 1000).toLocaleString()}`;
 
                 // Verify image hash (client-side example)
                 const response = await fetch(document.getElementById('template').src);
