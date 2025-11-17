@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>AI Credential Viewer</title>
+    <script src="https://cdn.jsdelivr.net/npm/ethers@5.7.2/dist/ethers.umd.min.js"></script>
+    <style>
+        body { font-family: Arial; text-align: center; }
+        #certificate { border: 2px solid #000; padding: 20px; max-width: 600px; margin: auto; }
+        img { max-width: 100%; }
+    </style>
+</head>
+<body>
+    <h1>Your AI Talk Credential</h1>
+    <div id="certificate">
+        <img id="template" src="https://raw.githubusercontent.com/francis-kool/ai-credentials-demo/main/images/ai-talk-credential-template.png" alt="Credential Template">
+        <p id="name"></p>
+        <p id="title"></p>
+        <p id="date"></p>
+        <p id="issuer"></p>
+        <p id="timestamp"></p>
+        <p id="verification"></p>
+    </div>
+
+    <h2>Request to Collect as NFT</h2>
+    <form id="request-form">
+        <input type="text" id="wallet" placeholder="Your Wallet Address (0x...)" required>
+        <input type="email" id="email" placeholder="Confirm Email" required>
+        <button type="submit">Request NFT</button>
+    </form>
+    <p id="status"></p>
+
+    <script>
+        const contractAddress = '0x739ED265Af12F3e5518884eAc0a32c2eCA92e820'; // Replace
+        const rpcUrl = 'https://sepolia.infura.io/v3/0x23bf685caf36d4d53bb221391b7d25e52e2117ab29d59bf9e7b04d3c69c8485f'; // Or public RPC
+        const abi = [ // Minimal ABI for getTokenData
+            "function getTokenData(uint256 id) view returns (string receiverName, string talkTitle, string eventDate, string issuer, uint256 timestamp, bytes32 imageHash)"
+        ];
+
+        const provider = new ethers.providers.JsonRpcProvider(rpcUrl);
+        const contract = new ethers.Contract(contractAddress, abi, provider);
+
+        // Get URL params
+        const params = new URLSearchParams(window.location.search);
+        const tokenID = params.get('tokenID');
+        const key = params.get('key'); // For view verification (mock: assume valid if provided)
+
+        async function loadCredential() {
+            if (!tokenID || !key) {
+                document.getElementById('status').textContent = 'Invalid link.';
+                return;
+            }
+            try {
+                const data = await contract.getTokenData(tokenID);
+                document.getElementById('name').textContent = `Receiver: ${data[0]}`;
+                document.getElementById('title').textContent = `Talk: ${data[1]}`;
+                document.getElementById('date').textContent = `Date: ${data[2]}`;
+                document.getElementById('issuer').textContent = `Issuer: ${data[3]}`;
+                document.getElementById('timestamp').textContent = `Minted: ${new Date(data[4] * 1000).toLocaleString()}`;
+
+                // Verify image hash (client-side example)
+                const response = await fetch(document.getElementById('template').src);
+                const arrayBuffer = await response.arrayBuffer();
+                const hashBuffer = await crypto.subtle.digest('SHA-256', arrayBuffer);
+                const hashArray = Array.from(new Uint8Array(hashBuffer));
+                const computedHash = '0x' + hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+                document.getElementById('verification').textContent = computedHash === data[5] ? 'Image Verified' : 'Image Mismatch';
+            } catch (error) {
+                document.getElementById('status').textContent = 'Error fetching data. Fallback to template.';
+                // Fallback: Fetch metadata JSON from GitHub and display static
+            }
+        }
+
+        loadCredential();
+
+        // Request form (sends email via mailto - replace with Formspree for real)
+        document.getElementById('request-form').addEventListener('submit', (e) => {
+            e.preventDefault();
+            const wallet = document.getElementById('wallet').value;
+            const email = document.getElementById('email').value;
+            window.location.href = `mailto:francispun.kool@gmail.com?subject=Credential Request Token ${tokenID}&body=Wallet: ${wallet}, Email: ${email}, Key: ${key}`;
+            document.getElementById('status').textContent = 'Request sent!';
+        });
+    </script>
+</body>
+</html>
