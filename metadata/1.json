@@ -1,0 +1,8 @@
+{
+  "name": "AI Credential - [Receiver Name]",
+  "description": "Proof of attendance for '[Talk Title]'. Issued by [Issuer] on [Event Date].",
+  "image": "https://raw.githubusercontent.com/francis-kool/ai-credentials-demo/main/images/ai-talk-credential-template.png",
+  "attributes": [
+    {"trait_type": "Timestamp", "value": "[Timestamp]"}
+  ]
+}
